@@ -3,14 +3,16 @@ Flask API server for crowd monitoring
 """
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-import cv2
 import base64
+import cv2
 import io
 import os
+import platform
 from functools import lru_cache
 from main import initialize_monitoring
 from pathlib import Path
 from werkzeug.utils import secure_filename
+from event_analysis import analyze_event_video
 
 app = Flask(__name__)
 CORS(app)
@@ -38,6 +40,16 @@ def allowed_file(filename):
 def allowed_image_file(filename):
     """Check if image file extension is allowed"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
+
+
+def get_system_location():
+    """Return a human-readable local system location label."""
+    configured_location = os.getenv('SYSTEM_LOCATION')
+    if configured_location:
+        return configured_location
+
+    hostname = platform.node() or 'unknown-host'
+    return f"{hostname} (local monitoring workstation)"
 
 
 @lru_cache(maxsize=1)
@@ -106,10 +118,22 @@ def get_data():
             "error": "Monitoring system not initialized",
             "count": 0,
             "average": 0,
+            "recent_average": 0,
             "spike": 0,
             "status": "ERROR",
             "alert_triggered": False,
-            "history": []
+            "history": [],
+            "density_index": 0,
+            "occupancy_ratio": 0,
+            "concentration_ratio": 0,
+            "recent_growth": 0,
+            "sudden_crowd_formation": False,
+            "overcrowded": False,
+            "stampede_risk": False,
+            "stampede_risk_score": 0,
+            "unusual_gathering": False,
+            "risk_level": "LOW",
+            "baseline_ready": False
         }), 500
     
     try:
@@ -118,10 +142,22 @@ def get_data():
         response = {
             "count": status.get("count", 0),
             "average": status.get("average", 0),
+            "recent_average": status.get("recent_average", 0),
             "spike": status.get("spike", 0),
             "status": status.get("status", "NORMAL"),
             "alert_triggered": status.get("alert_triggered", False),
-            "history": status.get("history", [])
+            "history": status.get("history", []),
+            "density_index": status.get("density_index", 0),
+            "occupancy_ratio": status.get("occupancy_ratio", 0),
+            "concentration_ratio": status.get("concentration_ratio", 0),
+            "recent_growth": status.get("recent_growth", 0),
+            "sudden_crowd_formation": status.get("sudden_crowd_formation", False),
+            "overcrowded": status.get("overcrowded", False),
+            "stampede_risk": status.get("stampede_risk", False),
+            "stampede_risk_score": status.get("stampede_risk_score", 0),
+            "unusual_gathering": status.get("unusual_gathering", False),
+            "risk_level": status.get("risk_level", "LOW"),
+            "baseline_ready": status.get("baseline_ready", False)
         }
         
         return jsonify(response)
@@ -131,10 +167,22 @@ def get_data():
             "error": str(e),
             "count": 0,
             "average": 0,
+            "recent_average": 0,
             "spike": 0,
             "status": "ERROR",
             "alert_triggered": False,
-            "history": []
+            "history": [],
+            "density_index": 0,
+            "occupancy_ratio": 0,
+            "concentration_ratio": 0,
+            "recent_growth": 0,
+            "sudden_crowd_formation": False,
+            "overcrowded": False,
+            "stampede_risk": False,
+            "stampede_risk_score": 0,
+            "unusual_gathering": False,
+            "risk_level": "LOW",
+            "baseline_ready": False
         }), 500
 
 
@@ -274,6 +322,44 @@ def caption_image():
         print(f"Error generating image caption: {e}", flush=True)
         return jsonify({
             "error": f"Failed to generate caption: {str(e)}"
+        }), 500
+
+
+@app.route('/analyze-event-video', methods=['POST'])
+def analyze_event_video_upload():
+    """Analyze an uploaded video for violence and accident detection."""
+    if 'file' not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+
+    if not allowed_file(file.filename):
+        return jsonify({
+            "error": f"File type not allowed. Allowed: {', '.join(sorted(ALLOWED_EXTENSIONS))}"
+        }), 400
+
+    try:
+        filename = secure_filename(file.filename)
+        import time
+
+        filename = f"{int(time.time())}_{filename}"
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+
+        system_location = request.form.get('system_location') or get_system_location()
+        analysis_result = analyze_event_video(filepath, system_location=system_location)
+
+        return jsonify({
+            **analysis_result,
+            "filename": filename,
+            "filepath": filepath,
+        }), 200
+    except Exception as e:
+        print(f"Error analyzing video: {e}", flush=True)
+        return jsonify({
+            "error": f"Failed to analyze video: {str(e)}"
         }), 500
 
 

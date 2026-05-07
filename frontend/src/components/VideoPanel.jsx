@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { Camera, Upload, MonitorPlay } from 'lucide-react'
 
 const API_BASE_URL = 'http://localhost:5000'
 
 export const VideoPanel = ({ frameData, isLoading, liveData }) => {
   const videoRef = useRef(null)
-  const canvasRef = useRef(null)
   const streamRef = useRef(null)
   const fileInputRef = useRef(null)
-  const [mode, setMode] = useState(frameData ? 'backend' : 'live')  // Default to backend if available
+  const [mode, setMode] = useState('live')
   const [cameraError, setCameraError] = useState('')
   const [uploadedPreviewUrl, setUploadedPreviewUrl] = useState('')
   const [uploadedMedia, setUploadedMedia] = useState(null)
@@ -24,14 +24,38 @@ export const VideoPanel = ({ frameData, isLoading, liveData }) => {
     }
   }, [liveData])
 
-  // Live camera setup
+  // Camera / feed setup
   useEffect(() => {
-    let cancelled = false
-
     const stopStream = () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop())
         streamRef.current = null
+      }
+    }
+
+    const startLiveCamera = async () => {
+      try {
+        setCameraError('')
+        stopStream()
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'user',
+            width: { ideal: 1280 },
+            height: { ideal: 1280 },
+          },
+          audio: false,
+        })
+
+        streamRef.current = stream
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream
+          await videoRef.current.play()
+        }
+      } catch (error) {
+        console.error('Camera error:', error)
+        setCameraError(`Camera error: ${error.message}`)
       }
     }
 
@@ -58,6 +82,8 @@ export const VideoPanel = ({ frameData, isLoading, liveData }) => {
     }
 
     if (mode === 'live') {
+      startLiveCamera()
+    } else if (mode === 'backend') {
       startBackendFeed()
     } else {
       stopStream()
@@ -67,7 +93,6 @@ export const VideoPanel = ({ frameData, isLoading, liveData }) => {
     }
 
     return () => {
-      cancelled = true
       stopStream()
     }
   }, [mode])
@@ -130,39 +155,43 @@ export const VideoPanel = ({ frameData, isLoading, liveData }) => {
   const frameUrl = frameData ? `data:image/jpeg;base64,${frameData}` : null
 
   return (
-    <div className="bg-gray-900 border border-gray-700 rounded-lg overflow-hidden shadow-2xl shadow-black/20">
-      <div className="bg-gradient-to-r from-gray-800 to-gray-900 p-4 border-b border-gray-700 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-          📹 Live Camera Feed
-        </h3>
+    <div className="mx-auto w-full max-w-[920px] overflow-hidden rounded-[2rem] border border-white/10 bg-[#07111f] shadow-2xl shadow-black/25">
+      <div className="flex flex-col gap-4 border-b border-white/10 bg-white/5 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.28em] text-slate-400">Live feed</p>
+          <h3 className="mt-1 text-lg font-semibold text-white">Crowd monitoring camera</h3>
+        </div>
 
-        <div className="flex items-center gap-2 rounded-full bg-gray-950/70 p-1 border border-gray-700 w-fit">
+        <div className="flex flex-wrap items-center gap-2 rounded-full border border-white/10 bg-black/20 p-1 w-fit">
           <button
             onClick={() => setMode('live')}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-              mode === 'live' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white'
+            className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium transition-colors ${
+              mode === 'live' ? 'bg-cyan-500 text-slate-950' : 'text-slate-300 hover:text-white'
             }`}
           >
-            📹 Live Camera
+            <Camera className="h-3.5 w-3.5" />
+            Live camera
           </button>
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-              mode === 'upload' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white'
-            } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium transition-colors ${
+              mode === 'upload' ? 'bg-cyan-500 text-slate-950' : 'text-slate-300 hover:text-white'
+            } ${isUploading ? 'cursor-not-allowed opacity-50' : ''}`}
           >
-            {isUploading ? '⏳ Uploading...' : '📤 Upload Video'}
+            <Upload className="h-3.5 w-3.5" />
+            {isUploading ? 'Uploading...' : 'Upload video'}
           </button>
           {frameData && (
             <button
               onClick={() => setMode('backend')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                mode === 'backend' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:text-white'
+              className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium transition-colors ${
+                mode === 'backend' ? 'bg-cyan-500 text-slate-950' : 'text-slate-300 hover:text-white'
               }`}
               title="Backend detected feed with bounding boxes"
             >
-              🎯 Backend Feed
+              <MonitorPlay className="h-3.5 w-3.5" />
+              Backend feed
             </button>
           )}
         </div>
@@ -176,11 +205,11 @@ export const VideoPanel = ({ frameData, isLoading, liveData }) => {
         onChange={handleFileChange}
       />
 
-      <div className="aspect-video bg-black relative flex items-center justify-center overflow-hidden">
+      <div className="relative mx-auto flex aspect-square w-full max-w-[840px] items-center justify-center overflow-hidden bg-black">
         {uploadError && (
           <div className="absolute inset-0 flex items-center justify-center text-center px-6 bg-black/70 z-10">
             <div className="max-w-sm rounded-2xl border border-red-500/30 bg-red-500/10 p-6 text-red-100">
-              <p className="text-lg font-semibold mb-2">Upload Error</p>
+              <p className="mb-2 text-base font-semibold">Upload error</p>
               <p className="text-sm text-red-200/80">{uploadError}</p>
               <button
                 onClick={() => setUploadError('')}
@@ -191,18 +220,19 @@ export const VideoPanel = ({ frameData, isLoading, liveData }) => {
             </div>
           </div>
         )}
-        {mode === 'live' && frameData ? (
-          <img
-            src={frameUrl}
-            alt="Backend detected feed"
-            className="w-full h-full object-cover"
-            key={frameData}
+        {mode === 'live' ? (
+          <video
+            ref={videoRef}
+            autoPlay
+            muted
+            playsInline
+            className="h-full w-full object-cover bg-black"
           />
         ) : mode === 'backend' && frameData ? (
           <img
             src={frameUrl}
             alt="Backend detected feed"
-            className="w-full h-full object-cover"
+            className="h-full w-full object-cover bg-black"
             key={frameData}
           />
         ) : mode === 'upload' && uploadedPreviewUrl ? (
@@ -213,12 +243,12 @@ export const VideoPanel = ({ frameData, isLoading, liveData }) => {
             muted
             playsInline
             src={uploadedPreviewUrl}
-            className="w-full h-full object-cover"
+            className="h-full w-full object-cover bg-black"
           />
         ) : (
-          <div className="text-gray-500 text-center px-6">
-            <p className="text-lg">📹 No video feed available</p>
-            <p className="text-sm mt-2">
+          <div className="flex h-full w-full items-center justify-center px-6 text-center text-slate-400">
+            <p className="text-base font-medium text-slate-200">No video feed available</p>
+            <p className="mt-2 text-sm">
               {mode === 'live'
                 ? 'Waiting for the backend camera feed...'
                 : mode === 'backend'

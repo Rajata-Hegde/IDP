@@ -9,16 +9,18 @@ export const MetricCard = ({ title, value, unit = '', color = 'blue', icon = 'ðŸ
   }
 
   return (
-    <div className={`border ${colorClasses[color]} rounded-lg p-6 backdrop-blur-sm hover:shadow-lg transition-shadow`}>
-      <div className="flex items-start justify-between">
+    <div className={`border ${colorClasses[color]} rounded-2xl p-4 backdrop-blur-sm hover:shadow-lg transition-shadow`}>
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-gray-400 text-sm font-medium mb-2">{title}</p>
-          <p className="text-3xl font-bold text-white">
+          <p className="text-xs uppercase tracking-[0.18em] text-gray-400 mb-2">{title}</p>
+          <p className="text-2xl font-semibold text-white">
             {typeof value === 'number' ? value.toFixed(1) : value}
-            {unit && <span className="text-lg ml-1 text-gray-400">{unit}</span>}
+            {unit && <span className="text-sm ml-1 text-gray-400">{unit}</span>}
           </p>
         </div>
-        <span className="text-3xl">{icon}</span>
+        <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-sm text-white/90">
+          {typeof icon === 'string' ? icon : React.createElement(icon, { className: 'h-4 w-4' })}
+        </div>
       </div>
     </div>
   )

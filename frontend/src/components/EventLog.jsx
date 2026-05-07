@@ -4,18 +4,18 @@ export const EventLog = ({ events = [] }) => {
   const displayEvents = events.slice().reverse().slice(0, 10)
 
   return (
-    <div className="bg-gray-900 border border-gray-700 rounded-lg p-4">
-      <h3 className="text-lg font-semibold text-white mb-4">📋 Event Log</h3>
-      <div className="space-y-2 max-h-64 overflow-y-auto">
+    <div className="rounded-[2rem] border border-white/10 bg-slate-950/70 p-4 shadow-2xl shadow-black/20">
+      <h3 className="mb-4 text-base font-semibold text-white">Event log</h3>
+      <div className="max-h-72 space-y-2 overflow-y-auto">
         {displayEvents.length === 0 ? (
-          <p className="text-gray-500 text-sm">No events logged yet</p>
+          <p className="text-sm text-slate-400">No events logged yet.</p>
         ) : (
           displayEvents.map((event, idx) => (
-            <div key={idx} className="bg-gray-800 p-3 rounded text-sm border-l-4 border-yellow-500">
-              <p className="text-gray-400 text-xs">{new Date(event.timestamp).toLocaleTimeString()}</p>
-              <p className="text-white font-medium">{event.type}</p>
-              <p className="text-gray-300 text-xs mt-1">
-                Count: {event.data.count} | Avg: {event.data.average.toFixed(1)} | Spike: {event.data.spike.toFixed(1)}
+            <div key={idx} className="rounded-2xl border border-white/10 bg-white/5 p-3 text-sm">
+              <p className="text-[11px] text-slate-400">{new Date(event.timestamp).toLocaleTimeString()}</p>
+              <p className="mt-1 font-medium text-white">{event.type}</p>
+              <p className="mt-1 text-[11px] text-slate-300">
+                Count: {event.data?.count ?? 0} · Avg: {(event.data?.average ?? 0).toFixed?.(1) ?? event.data?.average ?? 0} · Spike: {(event.data?.spike ?? 0).toFixed?.(1) ?? event.data?.spike ?? 0}
               </p>
             </div>
           ))

@@ -2,12 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  scroll-behavior: smooth;
+}
+
 * {
   @apply transition-colors duration-200;
 }
 
 body {
-  @apply bg-gray-950 text-white font-sans;
+  @apply bg-gray-950 text-white font-sans antialiased;
+  background:
+    radial-gradient(circle at top left, rgba(34, 211, 238, 0.14), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(59, 130, 246, 0.12), transparent 28%),
+    #050816;
 }
 
 ::-webkit-scrollbar {
@@ -20,4 +28,9 @@ body {
 
 ::-webkit-scrollbar-thumb {
   @apply bg-gray-700 rounded hover:bg-gray-600;
+}
+
+::selection {
+  background: rgba(34, 211, 238, 0.35);
+  color: white;
 }

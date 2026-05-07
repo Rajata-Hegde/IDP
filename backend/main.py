@@ -53,7 +53,11 @@ class CrowdMonitoringSystem:
                 
                 if detection.get("success", True):
                     person_count = detection["count"]
-                    self.analyzer.add_count(person_count)
+                    self.analyzer.add_detection(
+                        count=person_count,
+                        boxes=detection.get("boxes", []),
+                        frame_shape=frame.shape,
+                    )
                     
                     # Log every 30 frames (roughly every second at 30fps)
                     if frame_count % 30 == 0:
@@ -90,22 +94,32 @@ class CrowdMonitoringSystem:
         # Average
         cv2.putText(frame, f"Avg: {status['average']}", (10, 80),
                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 0), 2)
-        
+
+        # Density
+        density_color = (0, 0, 255) if status.get('overcrowded') else (255, 165, 0)
+        cv2.putText(frame, f"Density: {status.get('density_index', 0)}", (10, 120),
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.8, density_color, 2)
+
         # Spike (sudden increase)
         spike_color = (0, 0, 255) if status['spike'] > 2 else (255, 165, 0)
-        cv2.putText(frame, f"Spike: {status['spike']}", (10, 120),
+        cv2.putText(frame, f"Spike: {status['spike']}", (10, 160),
                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, spike_color, 2)
-        
+
+        # Risk level
+        risk_color = (0, 0, 255) if status.get('stampede_risk') else (255, 255, 255)
+        cv2.putText(frame, f"Risk: {status.get('risk_level', 'LOW')}", (10, 200),
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.8, risk_color, 2)
+
         # Status - make it very visible
         status_color = (0, 0, 255) if status['status'] == "ALERT" else (0, 255, 0)
         status_thickness = 3 if status['status'] == "ALERT" else 2
-        cv2.putText(frame, f"Status: {status['status']}", (10, 160),
+        cv2.putText(frame, f"Status: {status['status']}", (10, 240),
                    cv2.FONT_HERSHEY_SIMPLEX, 1, status_color, status_thickness)
         
         # Draw a filled rectangle background for better visibility
         if status['status'] == "ALERT":
-            cv2.rectangle(frame, (5, 15), (w-5, 175), (0, 0, 255), -1)
-            cv2.rectangle(frame, (5, 15), (w-5, 175), (255, 255, 255), 2)
+            cv2.rectangle(frame, (5, 15), (w-5, 255), (0, 0, 255), -1)
+            cv2.rectangle(frame, (5, 15), (w-5, 255), (255, 255, 255), 2)
     
     def start(self):
         """Start the monitoring system"""
